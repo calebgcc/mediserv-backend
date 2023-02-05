@@ -3,7 +3,7 @@ from django.db import models
 # Create your models here.
 class Experiment(models.Model):
     name = models.CharField(max_length=100)
-    description = models.CharField(max_length=400)
+    description = models.CharField(max_length=400, null=True, blank=True)
     date_created = models.DateField(auto_now_add=True)
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)

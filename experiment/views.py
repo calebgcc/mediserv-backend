@@ -21,7 +21,7 @@ def webhook(request):
         participant.save()
     elif 'user_reauth' in request.data:
         old_user_id = request.data['old_user']['user_id']
-        old_participant = Participants.object.filter(user_id=old_user_id)
+        old_participant = Participant.object.filter(user_id=old_user_id)
 
         experiment = old_participant.experiment
         experiment_group = old_participant.experiment_group
