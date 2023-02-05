@@ -83,7 +83,8 @@ def add_experiment(request):
         }
         return Response(response)
 
-    except:
+    except Exception as e:
+        print("Error adding experiment: ", e)
         return Response({'status':False})
 
 @api_view(['POST'])
