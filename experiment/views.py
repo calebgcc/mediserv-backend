@@ -8,10 +8,29 @@ import random
 
 
 @api_view(['GET'])
+def delete_participants(request):
+    users = Participant.objects.all()
+    for user in users:
+        url = f"https://api.tryterra.co/v2/auth/deauthenticateUser?user_id={user.user_id}"
+
+        headers = {
+            "accept": "application/json",
+            "dev-id": "ichack-dev-v5yHAxTdHW",
+            "x-api-key": "56af8f486046727553d9c66335cc0dd4ecad89914438be62ecc976f0c85a963b"
+        }
+
+        response = requests.delete(url, headers=headers)
+        user.delete()
+        user.save()
+    return Response({'status':'ok'})
+
+
+@api_view(['GET'])
 def refresh_data(request, experiment_id):
     experiment = Experiment.objects.get(id=experiment_id)
     participants = Participant.objects.filter(experiment=experiment)
     result = {}
+    temp = {}
     fakes = 20
     groups = ExperimentGroup.objects.all()
     group_map = {}
@@ -21,14 +40,12 @@ def refresh_data(request, experiment_id):
         group_map[group.id] = group.name
         max_group_id = max(max_group_id, group.id)
 
-    fake_group_ids = [group_map[random.randint(0, max_group_id)] for _ in range(fakes)]
+    fake_group_ids = [group_map[random.randint(1, max_group_id)] for _ in range(fakes)]
 
     for participant in participants:
-        if 'test' in participant.name.lower():
-            continue
 
         url = f"https://api.tryterra.co/v2/daily?user_id={participant.user_id}&start_date=2023-02-01&end_date=2023-02-05&to_webhook=false&with_samples=false"
-
+        print(url)
         headers = {
             "accept": "application/json",
             "dev-id": "ichack-dev-v5yHAxTdHW",
@@ -36,12 +53,11 @@ def refresh_data(request, experiment_id):
         }
 
         response = requests.get(url, headers=headers).json()
-        response.raise_for_status()
+        print(response)
         user_id = participant.user_id
         result["name"] = experiment.name
         result["description"] = experiment.description
         result["number_of_groups"] = max_group_id
-        temp = {}
         temp[user_id] = []
         for day in response['data']:
             temp[user_id].append({
@@ -76,41 +92,46 @@ def refresh_data(request, experiment_id):
 
 @api_view(['POST'])
 def webhook(request):
-    if 'auth' in request.data:
+    print(request.data)
+    if request.data['type'] == 'auth':
         user_id = request.data['user']['user_id']
         experiment, experiment_group, name = request.data['user']['reference_id'].split('-')
 
         participant = Participant(
             user_id=user_id,
-            experiment=experiment,
-            experiment_group=experiment_group,
+            experiment_id=int(experiment),
+            experiment_group_id=int(experiment_group),
             name=name
         )
         participant.save()
 
-    elif 'user_reauth' in request.data:
+    elif request.data['type'] == 'user_reauth':
         old_user_id = request.data['old_user']['user_id']
-        old_participant = Participant.object.filter(user_id=old_user_id)
+        old_participant = Participant.objects.filter(user_id=old_user_id)
 
-        experiment = old_participant.experiment
-        experiment_group = old_participant.experiment_group
+        experiment = old_participant.experiment_id
+        experiment_group = old_participant.experiment_group_id
         name = old_participant.name
 
         old_participant.delete()
+        old_participant.save()
 
         new_user_id = request.data['new_user']['user_id']
         participant = Participant(
             user_id=new_user_id,
-            experiment=experiment,
-            experiment_group=experiment_group,
+            experiment_id=experiment,
+            experiment_group_id=experiment_group,
             name=name
         )
         participant.save()
 
-    elif 'deauth' in request.data:
+    elif request.data['type'] == 'deauth':
         old_user_id = request.data['user']['user_id']
-        old_participant = Participant.object.filter(user_id=old_user_id)
+        old_participant = Participant.objects.filter(user_id=old_user_id)
         old_participant.delete()
+        old_participant.save()
+    
+    return Response({'status':'ok'})
 
 @api_view(['GET'])
 def get_experiments(request):
