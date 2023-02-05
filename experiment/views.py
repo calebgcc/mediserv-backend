@@ -5,6 +5,13 @@ from .models import Experiment, ExperimentGroup, Participant
 from .serializers import ExperimentSerializer, ExperimentGroupSerializer, ParticipantSerializer
 import requests
 
+"""
+@api_view(['POST'])
+def webhook(request):
+    if 'auth' in request.data:
+"""
+
+
 @api_view(['GET'])
 def get_experiments(request):
     experiments = Experiment.objects.all()
