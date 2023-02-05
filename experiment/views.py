@@ -21,7 +21,6 @@ def delete_participants(request):
 
         response = requests.delete(url, headers=headers)
         user.delete()
-        user.save()
     return Response({'status':'ok'})
 
 
@@ -63,11 +62,11 @@ def refresh_data(request, experiment_id):
             temp[user_id].append({
                 'avg_oxygen': day['oxygen_data']['avg_saturation_percentage'],
                 'steps': day['distance_data']['steps'],
-                'avg_heart_rate': day['heart_rate_data']['avg_hr_bpm'],
-                'max_heart_rate': day['heart_rate_data']['max_hr_bpm'],
+                'avg_heart_rate': day['heart_rate_data']['summary']['avg_hr_bpm'],
+                'max_heart_rate': day['heart_rate_data']['summary']['max_hr_bpm'],
                 'calories': day['calories_data']['total_burned_calories'],
                 'day': day['metadata']['start_time'],
-                'experiment_group_name': group_map[participant.experiment_group],
+                'experiment_group_name': group_map[participant.experiment_group_id],
                 'name': participant.name,
             })
 
@@ -82,7 +81,7 @@ def refresh_data(request, experiment_id):
                     'avg_heart_rate': random.randint(60, 80),
                     'max_heart_rate': random.randint(80, 120),
                     'calories': random.randint(1500, 2500),
-                    'day': day,
+                    'day': day['metadata']['start_time'],
                     'experiment_group_name': fake_group_ids[i],
                     'name': "test" + str(i),
                 })
@@ -107,14 +106,13 @@ def webhook(request):
 
     elif request.data['type'] == 'user_reauth':
         old_user_id = request.data['old_user']['user_id']
-        old_participant = Participant.objects.filter(user_id=old_user_id)
+        old_participant = Participant.objects.get(user_id=old_user_id)
 
         experiment = old_participant.experiment_id
         experiment_group = old_participant.experiment_group_id
         name = old_participant.name
 
         old_participant.delete()
-        old_participant.save()
 
         new_user_id = request.data['new_user']['user_id']
         participant = Participant(
@@ -127,9 +125,8 @@ def webhook(request):
 
     elif request.data['type'] == 'deauth':
         old_user_id = request.data['user']['user_id']
-        old_participant = Participant.objects.filter(user_id=old_user_id)
+        old_participant = Participant.objects.get(user_id=old_user_id)
         old_participant.delete()
-        old_participant.save()
     
     return Response({'status':'ok'})
 
