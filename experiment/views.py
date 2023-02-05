@@ -5,12 +5,38 @@ from .models import Experiment, ExperimentGroup, Participant
 from .serializers import ExperimentSerializer, ExperimentGroupSerializer, ParticipantSerializer
 import requests
 
-"""
+
 @api_view(['POST'])
 def webhook(request):
     if 'auth' in request.data:
-"""
+        user_id = request.data['user']['user_id']
+        experiment, experiment_group, name = request.data['user']['reference_id'].split('-')
 
+        participant = Participant(
+            user_id=user_id,
+            experiment=experiment,
+            experiment_group=experiment_group,
+            name=name
+        )
+        participant.save()
+    elif 'user_reauth' in request.data:
+        old_user_id = request.data['old_user']['user_id']
+        old_participant = Participants.object.filter(user_id=old_user_id)
+
+        experiment = old_participant.experiment
+        experiment_group = old_participant.experiment_group
+        name = old_participant.name
+
+        old_participant.delete()
+
+        new_user_id = request.data['new_user']['user_id']
+        participant = Participant(
+            user_id=new_user_id,
+            experiment=experiment,
+            experiment_group=experiment_group,
+            name=name
+        )
+        participant.save()
 
 @api_view(['GET'])
 def get_experiments(request):
@@ -121,4 +147,3 @@ def get_exp(experiment):
     } 
 
     return experiment
-

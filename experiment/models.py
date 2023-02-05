@@ -15,9 +15,3 @@ class Participant(models.Model):
     experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE)
     experiment_group = models.ForeignKey(ExperimentGroup, on_delete=models.CASCADE)
     user_id = models.CharField(max_length=300)
-
-
-
-
-
-
