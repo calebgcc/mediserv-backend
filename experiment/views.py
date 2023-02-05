@@ -9,11 +9,11 @@ import random
 
 @api_view(['GET'])
 def refresh_data(request, experiment_id):
-    experiment = Experiment.object.get(experiment_id=experiment_id)
-    participants = Participant.object.filter(experiment=experiment)
-    result = []
+    experiment = Experiment.objects.get(id=experiment_id)
+    participants = Participant.objects.filter(experiment=experiment)
+    result = {}
     fakes = 20
-    max_group_id = max(e.id for e in ExperimentGroup.object.all())
+    max_group_id = max(e.id for e in ExperimentGroup.objects.all())
     fake_group_ids = [random.randint(0, max_group_id) for _ in range(fakes)]
 
     for participant in participants:
@@ -30,9 +30,14 @@ def refresh_data(request, experiment_id):
 
         response = requests.get(url, headers=headers).json()
         response.raise_for_status()
-        result[user_id] = []
+        user_id = participant.user_id
+        result["name"] = experiment.name
+        result["description"] = experiment.description
+        result["number_of_groups"] = max_group_id
+        temp = {}
+        temp[user_id] = []
         for day in response['data']:
-            result[user_id] += {
+            temp[user_id].append({
                 'avg_oxygen': day['oxygen_data']['avg_saturation_percentage'],
                 'steps': day['distance_data']['steps'],
                 'avg_heart_rate': day['heart_rate_data']['avg_hr_bpm'],
@@ -41,14 +46,14 @@ def refresh_data(request, experiment_id):
                 'day': day['metadata']['start_time'],
                 'experiment_group_id': participant.experiment_group,
                 'name': participant.name,
-            }
+            })
 
             for i in range(fakes):
                 fake_user_id = "haksjdfhalkjshalksdjfhvas" + str(i)
-                if fake_user_id not in result:
-                    result[fake_user_id] = []
+                if fake_user_id not in temp:
+                    temp[fake_user_id] = []
 
-                result[fake_user_id] += {
+                temp[fake_user_id].append({
                     'avg_oxygen': random.randint(90, 98),
                     'steps': random.randint(10000, 20000),
                     'avg_heart_rate': random.randint(60, 80),
@@ -57,8 +62,9 @@ def refresh_data(request, experiment_id):
                     'day': day,
                     'experiment_group_id': fake_group_ids[i],
                     'name': "test" + str(i),
-                }
+                })
 
+    result["users_data"] = temp
     return Response(result)
 
 @api_view(['POST'])
