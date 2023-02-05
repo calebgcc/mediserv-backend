@@ -34,17 +34,24 @@ def refresh_data(request, experiment_id):
     groups = ExperimentGroup.objects.all()
     group_map = {}
 
+    result["name"] = experiment.name
+    result["description"] = experiment.description
+
     max_group_id = -1
     for group in groups:
         group_map[group.id] = group.name
         max_group_id = max(max_group_id, group.id)
+
+    if max_group_id == -1:
+        # print(experiment.name)
+        return Response({'name': experiment.name, 'description': experiment.description, 'number_of_groups': 0, 'users_data': []})
 
     fake_group_ids = [group_map[random.randint(1, max_group_id)] for _ in range(fakes)]
 
     for participant in participants:
 
         url = f"https://api.tryterra.co/v2/daily?user_id={participant.user_id}&start_date=2023-02-01&end_date=2023-02-05&to_webhook=false&with_samples=false"
-        print(url)
+        # print(url)
         headers = {
             "accept": "application/json",
             "dev-id": "ichack-dev-v5yHAxTdHW",
@@ -52,10 +59,8 @@ def refresh_data(request, experiment_id):
         }
 
         response = requests.get(url, headers=headers).json()
-        print(response)
+        # print(response)
         user_id = participant.user_id
-        result["name"] = experiment.name
-        result["description"] = experiment.description
         result["number_of_groups"] = max_group_id
         temp[user_id] = []
         for day in response['data']:
@@ -143,7 +148,9 @@ def get_experiments(request):
 
 @api_view(['GET'])
 def get_experiment(request, experiment_id):
+    print("id: ",experiment_id)
     experiment = Experiment.objects.get(id=experiment_id)
+    print(experiment)
     experiment_serializer = ExperimentSerializer(experiment, many=False)
 
     groups = ExperimentGroup.objects.filter(experiment=experiment)
