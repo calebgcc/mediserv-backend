@@ -4,7 +4,62 @@ from rest_framework.response import Response
 from .models import Experiment, ExperimentGroup, Participant
 from .serializers import ExperimentSerializer, ExperimentGroupSerializer, ParticipantSerializer
 import requests
+import random
 
+
+@api_view(['GET'])
+def refresh_data(request, experiment_id):
+    experiment = Experiment.object.get(experiment_id=experiment_id)
+    participants = Participant.object.filter(experiment=experiment)
+    result = []
+    fakes = 20
+    max_group_id = max(e.id for e in ExperimentGroup.object.all())
+    fake_group_ids = [random.randint(0, max_group_id) for _ in range(fakes)]
+
+    for participant in participants:
+        if 'test' in participant.name.lower():
+            continue
+
+        url = f"https://api.tryterra.co/v2/daily?user_id={participant.user_id}&start_date=2023-02-01&end_date=2023-02-05&to_webhook=false&with_samples=false"
+
+        headers = {
+            "accept": "application/json",
+            "dev-id": "ichack-dev-v5yHAxTdHW",
+            "x-api-key": "56af8f486046727553d9c66335cc0dd4ecad89914438be62ecc976f0c85a963b"
+        }
+
+        response = requests.get(url, headers=headers).json()
+        response.raise_for_status()
+        result[user_id] = []
+        for day in response['data']:
+            result[user_id] += {
+                'avg_oxygen': day['oxygen_data']['avg_saturation_percentage'],
+                'steps': day['distance_data']['steps'],
+                'avg_heart_rate': day['heart_rate_data']['avg_hr_bpm'],
+                'max_heart_rate': day['heart_rate_data']['max_hr_bpm'],
+                'calories': day['calories_data']['total_burned_calories'],
+                'day': day['metadata']['start_time'],
+                'experiment_group_id': participant.experiment_group,
+                'name': participant.name,
+            }
+
+            for i in range(fakes):
+                fake_user_id = "haksjdfhalkjshalksdjfhvas" + str(i)
+                if fake_user_id not in result:
+                    result[fake_user_id] = []
+
+                result[fake_user_id] += {
+                    'avg_oxygen': random.randint(90, 98),
+                    'steps': random.randint(10000, 20000),
+                    'avg_heart_rate': random.randint(60, 80),
+                    'max_heart_rate': random.randint(80, 120),
+                    'calories': random.randint(1500, 2500),
+                    'day': day,
+                    'experiment_group_id': fake_group_ids[i],
+                    'name': "test" + str(i),
+                }
+
+    return Response(result)
 
 @api_view(['POST'])
 def webhook(request):
