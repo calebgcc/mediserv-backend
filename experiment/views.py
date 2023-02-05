@@ -27,9 +27,9 @@ def get_experiment(request, experiment_id):
     particpants_serializer = ParticipantSerializer(particpants, many=True)
     
     experiment = {
-        **experiment_serializer,
-        'groups': groups_serializer,
-        'participants': particpants_serializer,
+        **experiment_serializer.data,
+        'groups': groups_serializer.data,
+        'participants': particpants_serializer.data,
     }
 
     return Response(experiment)
@@ -58,7 +58,7 @@ def add_experiment_group(request):
     try:
         experiment_group = ExperimentGroup(
             name=request.data['name'],
-            experiment=request.data['experiment'],)
+            experiment_id=request.data['experiment'],)
         experiment_group.save()
 
         response = {
@@ -67,7 +67,8 @@ def add_experiment_group(request):
         }
         return Response(response)
 
-    except:
+    except Exception as e:
+        print(e)
         return Response({'status':False})
 
 @api_view(['POST'])
@@ -94,13 +95,13 @@ def get_exp(experiment):
 
     experiment_serializer = ExperimentSerializer(experiment, many=False)
 
-    groups = ExperimentGroup.objects.count(experiment=experiment)
-    participants = Participant.objects.count(experiment=experiment)
+    groups = ExperimentGroup.objects.filter(experiment=experiment)
+    participants = Participant.objects.filter(experiment=experiment)
 
     experiment = {
-        **experiment_serializer,
-        'num_groups': groups,
-        'num_participants': participants,
+        **experiment_serializer.data,
+        'num_groups': len(groups),
+        'num_participants': len(participants),
     } 
 
     return experiment
