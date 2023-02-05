@@ -3,6 +3,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import Experiment, ExperimentGroup, Participant
 from .serializers import ExperimentSerializer, ExperimentGroupSerializer, ParticipantSerializer
+import requests
 
 @api_view(['GET'])
 def get_experiments(request):
@@ -75,19 +76,27 @@ def add_experiment_group(request):
 def add_participant(request):
 
     try:
-        participant = Participant(
-            name=request.data['name'],
-            experiment=request.data['experiment'],
-            experiment_group=request.data['experiment_group'],
-            user_id=request.data['user_id'],)
-        participant.save()
+        url = "https://api.tryterra.co/v2/auth/generateWidgetSession"
 
-        response = {
-            'status': True,
-            'participant_id': participant.id,
+        payload = {
+            "reference_id": str(request.data['experiment'])+"-"+str(request.data['experiment_group'])+"-"+request.data['name'],
+            "providers": "GARMIN,WITHINGS,FITBIT,GOOGLE,OURA,WAHOO,PELOTON,ZWIFT,TRAININGPEAKS,FREESTYLELIBRE,DEXCOM,COROS,HUAWEI,OMRON,RENPHO,POLAR,SUUNTO,EIGHT,APPLE,CONCEPT2,WHOOP,IFIT,TEMPO,CRONOMETER,FATSECRET,NUTRACHECK,UNDERARMOUR",
+            "language": "en"
         }
-        return Response(response)
-    except:
+        headers = {
+            "accept": "application/json",
+            "dev-id": "ichack-dev-v5yHAxTdHW",
+            "content-type": "application/json",
+            "x-api-key": "56af8f486046727553d9c66335cc0dd4ecad89914438be62ecc976f0c85a963b"
+        }
+
+        response = requests.post(url, json=payload, headers=headers)
+        response.raise_for_status()
+
+        return Response({'status':True,'link':response.json()["url"]})
+
+    except Exception as e:
+        print(e)
         return Response({'status':False})
 
 
