@@ -13,8 +13,15 @@ def refresh_data(request, experiment_id):
     participants = Participant.objects.filter(experiment=experiment)
     result = {}
     fakes = 20
-    max_group_id = max(e.id for e in ExperimentGroup.objects.all())
-    fake_group_ids = [random.randint(0, max_group_id) for _ in range(fakes)]
+    groups = ExperimentGroup.objects.all()
+    group_map = {}
+
+    max_group_id = -1
+    for group in groups:
+        group_map[group.id] = group.name
+        max_group_id = max(max_group_id, group.id)
+
+    fake_group_ids = [group_map[random.randint(0, max_group_id)] for _ in range(fakes)]
 
     for participant in participants:
         if 'test' in participant.name.lower():
@@ -44,7 +51,7 @@ def refresh_data(request, experiment_id):
                 'max_heart_rate': day['heart_rate_data']['max_hr_bpm'],
                 'calories': day['calories_data']['total_burned_calories'],
                 'day': day['metadata']['start_time'],
-                'experiment_group_id': participant.experiment_group,
+                'experiment_group_name': group_map[participant.experiment_group],
                 'name': participant.name,
             })
 
@@ -60,7 +67,7 @@ def refresh_data(request, experiment_id):
                     'max_heart_rate': random.randint(80, 120),
                     'calories': random.randint(1500, 2500),
                     'day': day,
-                    'experiment_group_id': fake_group_ids[i],
+                    'experiment_group_name': fake_group_ids[i],
                     'name': "test" + str(i),
                 })
 
