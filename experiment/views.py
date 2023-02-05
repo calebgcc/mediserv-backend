@@ -19,6 +19,7 @@ def webhook(request):
             name=name
         )
         participant.save()
+
     elif 'user_reauth' in request.data:
         old_user_id = request.data['old_user']['user_id']
         old_participant = Participant.object.filter(user_id=old_user_id)
@@ -37,6 +38,11 @@ def webhook(request):
             name=name
         )
         participant.save()
+
+    elif 'deauth' in request.data:
+        old_user_id = request.data['user']['user_id']
+        old_participant = Participant.object.filter(user_id=old_user_id)
+        old_participant.delete()
 
 @api_view(['GET'])
 def get_experiments(request):
